@@ -6,6 +6,7 @@
 |----------------|-----------------|--------------------------------------------------------------|
 | `DATABASE_URL` | Yes (app only)  | PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/db` |
 | `NODE_ENV`     | Yes             | Must be `production` for the production image                |
+| `API_KEY`      | Yes             | Secret key for `X-Api-Key` header authentication on all `/api/grocery-items` routes |
 
 ## Optional environment variables
 

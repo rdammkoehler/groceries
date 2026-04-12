@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireApiKey } from "@/lib/auth";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   const { id } = await params;
   const body = await request.json();
   const { purchased } = body;
@@ -20,9 +24,12 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   const { id } = await params;
 
   await prisma.groceryItem.delete({

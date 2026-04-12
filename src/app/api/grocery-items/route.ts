@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireApiKey } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   const items = await prisma.groceryItem.findMany({
     orderBy: { dateEntered: "desc" },
   });
@@ -9,12 +13,22 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
   const body = await request.json();
   const { name, quantity } = body;
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
     return NextResponse.json(
       { error: "Name is required" },
+      { status: 400 }
+    );
+  }
+
+  if (name.trim().length > 255) {
+    return NextResponse.json(
+      { error: "Name must be 255 characters or fewer" },
       { status: 400 }
     );
   }

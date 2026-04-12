@@ -12,10 +12,12 @@ export default function Home() {
   const fetchItems = useCallback(async () => {
     try {
       const response = await fetch("/api/grocery-items");
-      const data = await response.json();
-      setGroceryItems(data);
-    } catch (error) {
-      console.error("Failed to fetch grocery items:", error);
+      if (response.ok) {
+        const data = await response.json();
+        setGroceryItems(data);
+      }
+    } catch (fetchError) {
+      console.error("Failed to fetch grocery items:", fetchError);
     } finally {
       setIsLoading(false);
     }
@@ -28,9 +30,11 @@ export default function Home() {
   const handleDelete = async (itemId: string) => {
     try {
       await fetch(`/api/grocery-items/${itemId}`, { method: "DELETE" });
-      setGroceryItems((previous) => previous.filter((item) => item.id !== itemId));
-    } catch (error) {
-      console.error("Failed to delete item:", error);
+      setGroceryItems((previous) =>
+        previous.filter((item) => item.id !== itemId)
+      );
+    } catch (deleteError) {
+      console.error("Failed to delete item:", deleteError);
     }
   };
 

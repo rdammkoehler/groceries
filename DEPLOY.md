@@ -4,9 +4,11 @@
 
 | Variable       | Required        | Description                                                  |
 |----------------|-----------------|--------------------------------------------------------------|
-| `DATABASE_URL` | Yes (app only)  | PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/db` |
-| `NODE_ENV`     | Yes             | Must be `production` for the production image                |
-| `API_KEY`      | Yes             | Secret key for `X-Api-Key` header authentication on all `/api/grocery-items` routes |
+| `DATABASE_URL`        | Yes (app only)  | PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/db` |
+| `NODE_ENV`            | Yes             | Must be `production` for the production image                |
+| `AUTH_SECRET`         | Yes             | Auth.js session secret (generate with `npx auth secret`)     |
+| `GOOGLE_CLIENT_ID`    | Yes             | Google OAuth client ID from Google Cloud Console             |
+| `GOOGLE_CLIENT_SECRET`| Yes             | Google OAuth client secret from Google Cloud Console         |
 
 ## Optional environment variables
 

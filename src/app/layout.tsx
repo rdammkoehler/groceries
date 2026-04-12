@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Navigation from "@/components/Navigation";
+import SessionWrapper from "@/components/SessionWrapper";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,8 +30,10 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-zinc-50 dark:bg-zinc-900">
-        <Navigation />
-        <main className="flex flex-1 flex-col">{children}</main>
+        <SessionWrapper>
+          <Navigation />
+          <main className="flex flex-1 flex-col">{children}</main>
+        </SessionWrapper>
       </body>
     </html>
   );

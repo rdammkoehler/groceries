@@ -8,6 +8,7 @@ const mockOnTogglePurchased = jest.fn();
 const sampleItems: GroceryItem[] = [
   {
     id: "1",
+    listId: "list-1",
     name: "Lays Chips",
     quantity: 2,
     dateEntered: "2026-04-12T10:00:00.000Z",
@@ -15,6 +16,7 @@ const sampleItems: GroceryItem[] = [
   },
   {
     id: "2",
+    listId: "list-1",
     name: "Whole Milk",
     quantity: 1,
     dateEntered: "2026-04-12T11:00:00.000Z",

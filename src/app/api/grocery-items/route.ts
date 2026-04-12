@@ -1,31 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { requireApiKey } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
+import { withRLS } from "@/lib/rls";
 
 const DEFAULT_LIMIT = 100;
 
 export async function GET(request: NextRequest) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
+  const { session, error } = await requireSession();
+  if (error) return error;
 
   const { searchParams } = new URL(request.url);
+  const listId = searchParams.get("listId");
   const limit = Math.min(
     Math.max(Number(searchParams.get("limit")) || DEFAULT_LIMIT, 1),
     DEFAULT_LIMIT
   );
   const offset = Math.max(Number(searchParams.get("offset")) || 0, 0);
 
-  const items = await prisma.groceryItem.findMany({
-    orderBy: { dateEntered: "desc" },
-    take: limit,
-    skip: offset,
-  });
+  const items = await withRLS(session.userId, (transaction) =>
+    transaction.groceryItem.findMany({
+      where: listId ? { listId } : undefined,
+      orderBy: { dateEntered: "desc" },
+      take: limit,
+      skip: offset,
+    })
+  );
+
   return NextResponse.json(items);
 }
 
 export async function POST(request: NextRequest) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
+  const { session, error } = await requireSession();
+  if (error) return error;
 
   let body;
   try {
@@ -61,12 +66,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const item = await prisma.groceryItem.create({
-    data: {
-      name: name.trim(),
-      quantity: parsedQuantity,
-    },
+  const item = await withRLS(session.userId, async (transaction) => {
+    const groceryList = await transaction.groceryList.findUnique({
+      where: { ownerId: session.userId },
+    });
+
+    if (!groceryList) {
+      return null;
+    }
+
+    return transaction.groceryItem.create({
+      data: {
+        listId: groceryList.id,
+        name: name.trim(),
+        quantity: parsedQuantity,
+      },
+    });
   });
+
+  if (!item) {
+    return NextResponse.json(
+      { error: "Grocery list not found" },
+      { status: 404 }
+    );
+  }
 
   return NextResponse.json(item, { status: 201 });
 }

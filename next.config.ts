@@ -4,19 +4,18 @@ const securityHeaders = [
   {
     key: "Content-Security-Policy",
     // Next.js requires 'unsafe-inline' for its inline hydration scripts.
-    // This policy blocks remote script/style injection while allowing
-    // same-origin and inline content. Google Fonts are permitted for
-    // the Geist font used in layout.tsx.
+    // Google OAuth and user avatars require accounts.google.com and
+    // lh3.googleusercontent.com domains.
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data:",
-      "connect-src 'self'",
+      "img-src 'self' data: https://lh3.googleusercontent.com",
+      "connect-src 'self' https://accounts.google.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
-      "form-action 'self'",
+      "form-action 'self' https://accounts.google.com",
     ].join("; "),
   },
   {
@@ -43,6 +42,14 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+    ],
+  },
   async headers() {
     return [
       {

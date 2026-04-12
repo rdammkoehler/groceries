@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
+import { requireSession } from "@/lib/session";
+import { withRLS } from "@/lib/rls";
 import { prisma } from "@/lib/prisma";
-import { requireApiKey } from "@/lib/auth";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,8 +17,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
+  const { session, error } = await requireSession();
+  if (error) return error;
 
   const { id } = await params;
   const idError = validateId(id);
@@ -42,48 +43,68 @@ export async function PATCH(
     );
   }
 
-  const lastPurchaseDate = purchased ? new Date() : null;
+  // Check if user is the owner or a shared user.
+  // Shared users can only toggle purchase status, not modify other fields.
+  const item = await withRLS(session.userId, async (transaction) => {
+    const existingItem = await transaction.groceryItem.findUnique({
+      where: { id },
+      include: { list: { select: { ownerId: true } } },
+    });
 
-  try {
-    const item = await prisma.groceryItem.update({
+    if (!existingItem) return null;
+
+    const lastPurchaseDate = purchased ? new Date() : null;
+
+    return transaction.groceryItem.update({
       where: { id },
       data: { lastPurchaseDate },
     });
-    return NextResponse.json(item);
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2025"
-    ) {
-      return NextResponse.json({ error: "Item not found" }, { status: 404 });
-    }
-    throw error;
+  });
+
+  if (!item) {
+    return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
+
+  return NextResponse.json(item);
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
+  const { session, error } = await requireSession();
+  if (error) return error;
 
   const { id } = await params;
   const idError = validateId(id);
   if (idError) return idError;
 
+  // Only list owners can delete items. Verify ownership before deleting.
+  const item = await prisma.groceryItem.findUnique({
+    where: { id },
+    include: { list: { select: { ownerId: true } } },
+  });
+
+  if (!item) {
+    return NextResponse.json({ error: "Item not found" }, { status: 404 });
+  }
+
+  if (item.list.ownerId !== session.userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
-    await prisma.groceryItem.delete({
-      where: { id },
-    });
+    await withRLS(session.userId, (transaction) =>
+      transaction.groceryItem.delete({ where: { id } })
+    );
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (deleteError) {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2025"
+      deleteError instanceof Prisma.PrismaClientKnownRequestError &&
+      deleteError.code === "P2025"
     ) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
-    throw error;
+    throw deleteError;
   }
 }

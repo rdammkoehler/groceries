@@ -1,5 +1,34 @@
 # Change Log
 
+## 0.4.0 - 2026-04-12
+
+### Added
+- Multi-user support with OpenID Connect authentication via Auth.js v5 (Google provider)
+- User, Account, Session, VerificationToken database models for Auth.js
+- GroceryList model with one-to-one relationship to User (each user gets one list, auto-created on signup)
+- ListShare model enabling users to invite others to view and check off items on their list
+- PostgreSQL row-level security (RLS) policies on grocery_lists, grocery_items, and list_shares tables
+- `withRLS` helper that sets `app.current_user_id` session variable per-transaction for RLS enforcement
+- Session-based authentication replacing X-Api-Key auth for web UI
+- Sign-in page with Google OAuth button at `/auth/signin`
+- Share management page at `/share` for inviting users by email and removing shares
+- Shopping View now supports list selection dropdown for viewing own and shared lists
+- UserMenu component showing logged-in user with sign-out option in navigation
+- API routes: `GET /api/lists`, `GET/POST /api/lists/[id]/shares`, `DELETE /api/lists/[id]/shares/[shareId]`
+- Auth.js route handler at `/api/auth/[...nextauth]`
+- Session and RLS helper modules (`src/lib/session.ts`, `src/lib/rls.ts`)
+- CSP and image domain updates for Google OAuth and user avatars
+- `.env.example` with required environment variables
+- 13 new tests for ShareManager, ListSelector, session auth, RLS helper (42 total)
+
+### Changed
+- GroceryItem now belongs to a GroceryList via `listId` foreign key
+- API routes use session authentication instead of X-Api-Key
+- All domain queries run through RLS-scoped transactions
+- Middleware now redirects unauthenticated users to sign-in page
+- Only list owners can add/delete items; shared users can only toggle purchase status
+- Navigation includes Sharing link and UserMenu
+
 ## 0.3.0 - 2026-04-12
 
 ### Fixed

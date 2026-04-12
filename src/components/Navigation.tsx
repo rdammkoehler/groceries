@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import UserMenu from "./UserMenu";
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -16,13 +17,19 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="flex gap-2 border-b border-zinc-200 px-6 py-3 dark:border-zinc-700">
-      <Link href="/" className={linkClasses("/")}>
-        Grocery List
-      </Link>
-      <Link href="/shopping" className={linkClasses("/shopping")}>
-        Shopping View
-      </Link>
+    <nav className="flex items-center justify-between border-b border-zinc-200 px-6 py-3 dark:border-zinc-700">
+      <div className="flex gap-2">
+        <Link href="/" className={linkClasses("/")}>
+          Grocery List
+        </Link>
+        <Link href="/shopping" className={linkClasses("/shopping")}>
+          Shopping View
+        </Link>
+        <Link href="/share" className={linkClasses("/share")}>
+          Sharing
+        </Link>
+      </div>
+      <UserMenu />
     </nav>
   );
 }

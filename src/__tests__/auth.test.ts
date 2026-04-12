@@ -1,64 +1,72 @@
 /**
  * @jest-environment node
  */
-import { NextRequest } from "next/server";
-import { requireApiKey } from "@/lib/auth";
+import { requireSession } from "@/lib/session";
 
-function makeRequest(apiKey?: string): NextRequest {
-  const headers = new Headers();
-  if (apiKey) {
-    headers.set("x-api-key", apiKey);
-  }
-  return new NextRequest("http://localhost:3000/api/grocery-items", { headers });
-}
+// Mock the auth function from our auth module (which imports next-auth ESM)
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(),
+}));
 
-describe("requireApiKey", () => {
-  const originalEnv = process.env;
+import { auth } from "@/lib/auth";
 
-  beforeEach(() => {
-    process.env = { ...originalEnv };
+const mockAuth = auth as jest.MockedFunction<typeof auth>;
+
+describe("requireSession", () => {
+  it("returns 401 when no session exists", async () => {
+    mockAuth.mockResolvedValueOnce(null);
+
+    const result = await requireSession();
+
+    expect(result.error).not.toBeNull();
+    expect(result.error!.status).toBe(401);
+    expect(result.session).toBeNull();
   });
 
-  afterAll(() => {
-    process.env = originalEnv;
+  it("returns 401 when session has no user id", async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: { id: "", email: "test@example.com" },
+      expires: new Date().toISOString(),
+    } as never);
+
+    const result = await requireSession();
+
+    expect(result.error).not.toBeNull();
+    expect(result.error!.status).toBe(401);
   });
 
-  it("returns 500 when API_KEY env var is not set", () => {
-    delete process.env.API_KEY;
-    const result = requireApiKey(makeRequest("any-key"));
+  it("returns session data when authenticated", async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: {
+        id: "user-123",
+        email: "test@example.com",
+        name: "Test User",
+      },
+      expires: new Date().toISOString(),
+    } as never);
 
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(500);
+    const result = await requireSession();
+
+    expect(result.error).toBeNull();
+    expect(result.session).toEqual({
+      userId: "user-123",
+      userEmail: "test@example.com",
+      userName: "Test User",
+    });
   });
 
-  it("returns 401 when no x-api-key header is provided", () => {
-    process.env.API_KEY = "secret-key-123";
-    const result = requireApiKey(makeRequest());
+  it("handles missing name gracefully", async () => {
+    mockAuth.mockResolvedValueOnce({
+      user: {
+        id: "user-123",
+        email: "test@example.com",
+        name: null,
+      },
+      expires: new Date().toISOString(),
+    } as never);
 
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(401);
-  });
+    const result = await requireSession();
 
-  it("returns 401 when the provided key is wrong", () => {
-    process.env.API_KEY = "secret-key-123";
-    const result = requireApiKey(makeRequest("wrong-key"));
-
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(401);
-  });
-
-  it("returns 401 when the provided key has wrong length", () => {
-    process.env.API_KEY = "secret-key-123";
-    const result = requireApiKey(makeRequest("short"));
-
-    expect(result).not.toBeNull();
-    expect(result!.status).toBe(401);
-  });
-
-  it("returns null when the correct key is provided", () => {
-    process.env.API_KEY = "secret-key-123";
-    const result = requireApiKey(makeRequest("secret-key-123"));
-
-    expect(result).toBeNull();
+    expect(result.session?.userName).toBeNull();
   });
 });

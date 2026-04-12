@@ -1,38 +1,32 @@
-import { timingSafeEqual } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "./prisma";
 
-/**
- * API key authentication helper for Next.js API routes.
- *
- * Checks the X-Api-Key request header against the API_KEY environment variable.
- * Uses constant-time comparison to prevent timing side-channel attacks.
- *
- * Returns null when the request is authorised.
- * Returns a NextResponse (401 or 500) when the request should be rejected.
- *
- * Usage:
- *   const authError = requireApiKey(request);
- *   if (authError) return authError;
- */
-export function requireApiKey(request: NextRequest): NextResponse | null {
-  const expectedKey = process.env.API_KEY;
-
-  if (!expectedKey) {
-    console.error("API_KEY environment variable is not set");
-    return NextResponse.json(
-      { error: "Server authentication is not configured" },
-      { status: 500 }
-    );
-  }
-
-  const providedKey = request.headers.get("x-api-key");
-  if (
-    !providedKey ||
-    providedKey.length !== expectedKey.length ||
-    !timingSafeEqual(Buffer.from(providedKey), Buffer.from(expectedKey))
-  ) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  return null;
-}
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  callbacks: {
+    session({ session, user }) {
+      session.user.id = user.id;
+      return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      if (user.id) {
+        await prisma.groceryList.create({
+          data: { ownerId: user.id },
+        });
+      }
+    },
+  },
+  pages: {
+    signIn: "/auth/signin",
+  },
+});

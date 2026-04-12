@@ -9,7 +9,7 @@ datasource db {
 
 model GroceryItem {
   id                String    @id @default(uuid())
-  name              String
+  name              String    @db.VarChar(255)
   quantity          Int       @default(1)
   dateEntered       DateTime  @default(now()) @map("date_entered")
   lastPurchaseDate  DateTime? @map("last_purchase_date")

@@ -26,6 +26,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (name.trim().length > 255) {
+    return NextResponse.json(
+      { error: "Name must be 255 characters or fewer" },
+      { status: 400 }
+    );
+  }
+
   const parsedQuantity = Number(quantity);
   if (!Number.isInteger(parsedQuantity) || parsedQuantity < 1) {
     return NextResponse.json(

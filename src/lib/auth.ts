@@ -1,9 +1,11 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * API key authentication helper for Next.js API routes.
  *
  * Checks the X-Api-Key request header against the API_KEY environment variable.
+ * Uses constant-time comparison to prevent timing side-channel attacks.
  *
  * Returns null when the request is authorised.
  * Returns a NextResponse (401 or 500) when the request should be rejected.
@@ -24,7 +26,11 @@ export function requireApiKey(request: NextRequest): NextResponse | null {
   }
 
   const providedKey = request.headers.get("x-api-key");
-  if (!providedKey || providedKey !== expectedKey) {
+  if (
+    !providedKey ||
+    providedKey.length !== expectedKey.length ||
+    !timingSafeEqual(Buffer.from(providedKey), Buffer.from(expectedKey))
+  ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

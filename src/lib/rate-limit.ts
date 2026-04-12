@@ -8,7 +8,7 @@
  */
 
 const WINDOW_MS = 60_000; // 1 minute
-const MAX_REQUESTS = 60; // requests per window
+export const MAX_REQUESTS = 60; // requests per window
 
 // Map of IP → sorted list of request timestamps within current window
 const ipTimestamps = new Map<string, number[]>();
@@ -56,4 +56,12 @@ export function checkRateLimit(ip: string): RateLimitResult {
   active.push(now);
   ipTimestamps.set(ip, active);
   return { limited: false, remaining: MAX_REQUESTS - active.length };
+}
+
+/**
+ * Reset all rate limit state. Intended for use in tests only.
+ */
+export function resetRateLimitState(): void {
+  ipTimestamps.clear();
+  lastEviction = Date.now();
 }

@@ -3,6 +3,15 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiKey } from "@/lib/auth";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function validateId(id: string): NextResponse | null {
+  if (!UUID_REGEX.test(id)) {
+    return NextResponse.json({ error: "Invalid item ID" }, { status: 400 });
+  }
+  return null;
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -11,7 +20,19 @@ export async function PATCH(
   if (authError) return authError;
 
   const { id } = await params;
-  const body = await request.json();
+  const idError = validateId(id);
+  if (idError) return idError;
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+
   const { purchased } = body;
 
   if (typeof purchased !== "boolean") {
@@ -48,6 +69,8 @@ export async function DELETE(
   if (authError) return authError;
 
   const { id } = await params;
+  const idError = validateId(id);
+  if (idError) return idError;
 
   try {
     await prisma.groceryItem.delete({

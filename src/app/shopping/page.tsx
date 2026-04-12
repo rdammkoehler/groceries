@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import AddItemForm from "@/components/AddItemForm";
-import GroceryList from "@/components/GroceryList";
+import ShoppingList from "@/components/ShoppingList";
 import { GroceryItem } from "@/types/grocery";
 
-export default function Home() {
+export default function ShoppingPage() {
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -25,33 +24,36 @@ export default function Home() {
     fetchItems();
   }, [fetchItems]);
 
-  const handleDelete = async (itemId: string) => {
+  const handleTogglePurchased = async (itemId: string, purchased: boolean) => {
     try {
-      await fetch(`/api/grocery-items/${itemId}`, { method: "DELETE" });
-      setGroceryItems((previous) => previous.filter((item) => item.id !== itemId));
+      const response = await fetch(`/api/grocery-items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchased }),
+      });
+      const updatedItem = await response.json();
+      setGroceryItems((previous) =>
+        previous.map((item) => (item.id === itemId ? updatedItem : item))
+      );
     } catch (error) {
-      console.error("Failed to delete item:", error);
+      console.error("Failed to update item:", error);
     }
   };
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-        Grocery List
+        Shopping View
       </h1>
 
       <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-        <AddItemForm onItemAdded={fetchItems} />
-      </div>
-
-      <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-        <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-          Items
-        </h2>
         {isLoading ? (
           <p className="py-8 text-center text-zinc-500">Loading...</p>
         ) : (
-          <GroceryList items={groceryItems} onDelete={handleDelete} />
+          <ShoppingList
+            items={groceryItems}
+            onTogglePurchased={handleTogglePurchased}
+          />
         )}
       </div>
     </div>

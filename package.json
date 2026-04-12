@@ -21,6 +21,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
+  "overrides": {
+    "@hono/node-server": ">=1.19.13"
+  },
   "devDependencies": {
     "@jest/types": "^30.3.0",
     "@tailwindcss/postcss": "^4",

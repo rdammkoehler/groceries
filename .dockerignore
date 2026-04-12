@@ -1,0 +1,10 @@
+.git
+.gitignore
+node_modules
+.next
+src/generated
+*.env
+.env*
+README.md
+CHANGE_LOG.md
+CLAUDE.md

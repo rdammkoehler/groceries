@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireApiKey } from "@/lib/auth";
 
@@ -13,14 +14,30 @@ export async function PATCH(
   const body = await request.json();
   const { purchased } = body;
 
+  if (typeof purchased !== "boolean") {
+    return NextResponse.json(
+      { error: "'purchased' must be a boolean" },
+      { status: 400 }
+    );
+  }
+
   const lastPurchaseDate = purchased ? new Date() : null;
 
-  const item = await prisma.groceryItem.update({
-    where: { id },
-    data: { lastPurchaseDate },
-  });
-
-  return NextResponse.json(item);
+  try {
+    const item = await prisma.groceryItem.update({
+      where: { id },
+      data: { lastPurchaseDate },
+    });
+    return NextResponse.json(item);
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+    throw error;
+  }
 }
 
 export async function DELETE(
@@ -32,9 +49,18 @@ export async function DELETE(
 
   const { id } = await params;
 
-  await prisma.groceryItem.delete({
-    where: { id },
-  });
-
-  return NextResponse.json({ success: true });
+  try {
+    await prisma.groceryItem.delete({
+      where: { id },
+    });
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+    throw error;
+  }
 }
